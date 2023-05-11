@@ -1,0 +1,13 @@
+.product{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.image{
+    flex-basis: 80rem;
+}
+
+.details{
+    text-align: justify;
+}
