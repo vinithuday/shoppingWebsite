@@ -7,6 +7,7 @@ const routes=require("./routes/routes")
 
 const mongoString = databseApiKey;
 
+let port =3000   
 mongoose.connect(mongoString);
 const database = mongoose.connection;
 database.on('error', (error) => {
@@ -19,9 +20,9 @@ database.once('connected', () => {
 
 const app = express();
 app.use(cors())
-app.use('/api', routes);
+app.use('/', routes);
 app.use(express.json());
 
-app.listen(2020, () => {
-    console.log(`Server Started at ${2020}`)
+app.listen(port, () => {
+    console.log(`Server Started at ${port}`)
 })
