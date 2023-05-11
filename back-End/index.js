@@ -8,7 +8,7 @@ const routes=require("./routes/routes")
 const mongoString = envVariables.mongoString
 
 
-let port =3000   
+let port =envVariables.port
 mongoose.connect(mongoString);
 const database = mongoose.connection;
 database.on('error', (error) => {
