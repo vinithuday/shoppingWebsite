@@ -1,11 +1,11 @@
 // require('dotenv').config();
-const databseApiKey=require("./dbKeyApi");
+const envVariables=require("./envVariables");
 const express = require('express');
 var cors = require('cors');
 const mongoose = require('mongoose');
 const routes=require("./routes/routes")
 
-const mongoString = databseApiKey;
+const mongoString = envVariables.mongoString
 
 let port =3000   
 mongoose.connect(mongoString);

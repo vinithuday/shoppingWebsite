@@ -1,92 +1,17 @@
-// const express = require('express');
-// const databseApiKey=require("../dbKeyApi");
-// const router = express.Router()
-
-// module.exports = router;
-
-// var MongoClient = require('mongodb').MongoClient;
-// var url = databseApiKey;
-
-
-
-
-
-
-// router.post('/post', (req, res) => {
-//     res.send('Post API')
-// })
-
-
-// router.get('/getAll', (req, res) => {
-//     // let dateRe=(req.params.date).split("-"); 
-//     // let dateCon=`${dateRe[2]}/${dateRe[1]}/${dateRe[0]}` 
-    
-//     MongoClient.connect(url, function(err, db) {
-//         if (err) throw err;
-//         var dbo = db.db("inventory_Management");
-//         dbo.collection("InventoryCollection").find({}).toArray (function(err, result) {
-//           if (err){
-//             res.send(err);
-//           }else if(result){
-//               res.send(result);
-//               console.log(result.name);
-//               //${req.params.source} ${req.params.destination} ${req.params.class} ${req.params.date}
-//           }
-//           db.close();
-//         });
-//       });
-    
-// }) 
-
-
-// router.patch('/update/:id', (req, res) => {
-//     res.send('Update by ID API')
-// })
-
-// //Delete by ID Method
-// router.delete('/delete/:id', (req, res) => {
-  
-//   MongoClient.connect(url, function(err, db) {
-//     if (err) throw err;
-//     var dbo = db.db("inventory_Management");
-//     //find the product id using name-connect to product collection
-//     //using product id find the quantitiy in inventory collection
-//     //update the quantity -1
-//     dbo.collection("InventoryCollection").findOneAndDelete().toArray (function(err, result) {
-//       if (err){
-//         res.send(err);
-//       }else if(result){
-//           res.send(result);
-//           console.log(result.name);
-//           //${req.params.source} ${req.params.destination} ${req.params.class} ${req.params.date}
-//       }
-//       db.close();
-//     });
-//   });
-// })
-
-
-
-
 const express = require('express');
-const databseApiKey=require("../dbKeyApi");
+const envVariables=require("../envVariables");
 const router = express.Router()
-
 module.exports = router;
+let MongoClient = require('mongodb').MongoClient;
+let url = envVariables.mongoString;
 
-var MongoClient = require('mongodb').MongoClient;
-var url = databseApiKey;
-
-// router.post('/post', (req, res) => {
-//   res.send('Post API')
-// })
 
 router.post('/add', (req, res) => {
   MongoClient.connect(url, function(err, db) {
+    let dbo = db.db(envVariables.database);
     if (err) throw err;
-    var dbo = db.db("inventory_Management");
     // add new product to product collection
-    dbo.collection("ProductCollection").insertOne({
+    dbo.collection(envVariables.productDb).insertOne({
       product_id: req.body.product_id,
       product_name: req.body.product_name,
       product_description: req.body.product_description,
@@ -97,7 +22,7 @@ router.post('/add', (req, res) => {
         res.send(err);
       } else {
         // add product to inventory collection with initial quantity of 0
-        dbo.collection("InventoryCollection").insertOne({
+        dbo.collection(envVariables.inventoryDb).insertOne({
           product_id: req.body.product_id,
           product_quantity: 0,
           product_location: req.body.product_location,
@@ -118,9 +43,11 @@ router.post('/add', (req, res) => {
 
 router.get('/getAll', (req, res) => {
   MongoClient.connect(url, function(err, db) {
+    console.log(url,envVariables)
+    let dbo = db.db(envVariables.database);
     if (err) throw err;
-    var dbo = db.db("inventory_Management");
-    dbo.collection("InventoryCollection").find({}).toArray (function(err, result) {
+   
+    dbo.collection(envVariables.inventoryDb).find({}).toArray (function(err, result) {
       if (err){
         res.send(err);
       }else if(result){
@@ -138,10 +65,11 @@ router.patch('/update/:id', (req, res) => {
 
 router.delete('/delete/:id', (req, res) => {
   MongoClient.connect(url, function(err, db) {
+    let dbo = db.db(envVariables.database);
     if (err) throw err;
-    var dbo = db.db("inventory_Management");
+   
     // find the product id using name-connect to product collection
-    dbo.collection("ProductCollection").findOne({ product_name: "mi" }, function(err, product) {
+    dbo.collection(envVariables.productDb).findOne({ product_name: "mi" }, function(err, product) {
       if (err) throw err;
       if (!product) {
         res.send("Product not found");
@@ -150,7 +78,7 @@ router.delete('/delete/:id', (req, res) => {
       }
       // using product id find the quantity in inventory collection and update the quantity -1
       var productId = product.product_id;
-      dbo.collection("InventoryCollection").findOneAndUpdate(
+      dbo.collection(envVariables.inventoryDb).findOneAndUpdate(
         { product_id: productId },
         { $inc: { product_quantity: -1 } },
         { returnOriginal: false },
