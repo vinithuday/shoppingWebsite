@@ -1,8 +1,10 @@
 const express = require('express');
 const envVariables=require("../envVariables");
 const router = express.Router()
+router.use(express.json())
 module.exports = router;
 let MongoClient = require('mongodb').MongoClient;
+const { ObjectId } = require('mongodb');
 let url = envVariables.mongoString;
 
 
@@ -11,19 +13,20 @@ router.post('/add', (req, res) => {
     let dbo = db.db(envVariables.database);
     if (err) throw err;
     // add new product to product collection
+    console.log(req.body)
     dbo.collection(envVariables.productDb).insertOne({
-      product_id: req.body.product_id,
       product_name: req.body.product_name,
       product_description: req.body.product_description,
       product_price: req.body.product_price,
       product_category: req.body.product_category
     }, function(err, result) {
+
       if (err) {
         res.send(err);
       } else {
         // add product to inventory collection with initial quantity of 0
         dbo.collection(envVariables.inventoryDb).insertOne({
-          product_id: req.body.product_id,
+          product_id: result.insertedId,
           product_quantity: 0,
           product_location: req.body.product_location,
           last_updated: new Date().toLocaleDateString()
@@ -39,6 +42,27 @@ router.post('/add', (req, res) => {
     });
   });
 })
+
+router.get('/find/:name', (req, res) => {
+  MongoClient.connect(url, function(err, db) {
+    let dbo = db.db(envVariables.database);
+    if (err) throw err;
+
+    const productName = req.params.name;
+
+    dbo.collection(envVariables.productDb).find({ product_name: productName }).toArray(function(err, products) {
+      if (err) throw err;
+
+      if (products.length === 0) {
+        res.send("No products found");
+      } else {
+        res.send(products);
+      }
+
+      db.close();
+    });
+  });
+});
 
 
 router.get('/getAll', (req, res) => {
@@ -59,40 +83,80 @@ router.get('/getAll', (req, res) => {
   });
 }) 
 
-router.patch('/update/:id', (req, res) => {
-  res.send('Update by ID API')
-})
+router.patch('/update/:name', (req, res) => {
+  MongoClient.connect(url, function(err, db) {
+    let dbo = db.db(envVariables.database);
+    if (err) throw err;
+   
+    const productName = req.params.name;
+    const updateData = {
+      product_description: req.body.product_description,
+      product_price: req.body.product_price
+    };
 
-router.delete('/delete/:id', (req, res) => {
+    dbo.collection(envVariables.productDb).updateOne({ product_name: productName }, { $set: updateData }, function(err, result) {
+      if (err) throw err;
+      
+      if (result.modifiedCount === 0) {
+        console.log("Product not found");
+        res.send("Product not found");
+      } else {
+        console.log("Product updated successfully");
+        res.send("Product updated successfully");
+      }
+
+      db.close();
+    });
+  });
+});
+
+router.delete('/delete/:name', (req, res) => {
   MongoClient.connect(url, function(err, db) {
     let dbo = db.db(envVariables.database);
     if (err) throw err;
    
     // find the product id using name-connect to product collection
-    dbo.collection(envVariables.productDb).findOne({ product_name: "mi" }, function(err, product) {
+    dbo.collection(envVariables.productDb).find({ product_name: req.params.name }).toArray( function(err, products) {
       if (err) throw err;
-      if (!product) {
+      if (products.length===0) {
+        console.log("Product not found")
         res.send("Product not found");
         db.close();
         return;
       }
-      // using product id find the quantity in inventory collection and update the quantity -1
-      var productId = product.product_id;
-      dbo.collection(envVariables.inventoryDb).findOneAndUpdate(
-        { product_id: productId },
-        { $inc: { product_quantity: -1 } },
-        { returnOriginal: false },
-        function(err, result) {
-          if (err) throw err;
-          if (!result.value) {
-            res.send("Inventory not found");
-          } else {
-            res.send(result.value);
-            console.log(result.value.product_quantity);
-          }
-          db.close();
-        }
-      );
+      // console.log(products.length)
+      const deleteFromProducts = products.map((product) => {
+        const productId = product._id;
+        
+        // Delete each product individually
+        console.log(product)
+       return dbo.collection(envVariables.productDb).deleteOne({ _id: ObjectId(productId)});
+      });
+      const deleteFromInventory = products.map((product) => {
+        const productId = product._id;
+        
+        // Delete each product individually
+        console.log(product)
+       return dbo.collection(envVariables.inventoryDb).deleteOne({ product_id: ObjectId(productId)});
+      });
+      Promise.all(deleteFromProducts)
+        .then(() => {
+          console.log("Products deleted successfully");
+    
+        })
+        .then(()=>{
+          Promise.all(deleteFromInventory)
+          .then(() => {
+            console.log("Products deleted successfully from inventory");
+            res.send("Products deleted successfully from inventory and product list");
+            db.close();
+          })
+        })
+        .catch((err) => {
+          throw err;
+        });
+   
     });
   });
 })
+
