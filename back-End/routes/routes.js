@@ -99,17 +99,29 @@ router.patch("/update/:id", (req, res) => {
     if (err) throw err;
 
     let dbo = db.db(envVariables.database);
-    const updateProductData = {
-      product_name: req.body.product_name,
-      product_description: req.body.product_description,
-      product_price: req.body.product_price,
-      product_category: req.body.product_category,
-    };
-    const updateInventoryData = {
-      product_quantity: req.body.product_quantity,
-      product_location: req.body.product_location,
-      last_updated: new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }),
-    };
+    const updateProductData = {};
+    const updateInventoryData = {};
+
+    if (req.body.product_name) {
+      updateProductData.product_name = req.body.product_name;
+    }
+    if (req.body.product_description) {
+      updateProductData.product_description = req.body.product_description;
+    }
+    if (req.body.product_price) {
+      updateProductData.product_price = req.body.product_price;
+    }
+    if (req.body.product_category) {
+      updateProductData.product_category = req.body.product_category;
+    }
+    if (req.body.product_quantity) {
+      updateInventoryData.product_quantity = req.body.product_quantity;
+    }
+    if (req.body.product_location) {
+      updateInventoryData.product_location = req.body.product_location;
+    }
+    updateInventoryData.last_updated = new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' });
+
 
     dbo.collection(envVariables.productDb).findOneAndUpdate(
       { _id: ObjectId(req.params.id) },
