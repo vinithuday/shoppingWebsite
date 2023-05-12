@@ -28,7 +28,7 @@ router.post("/add", (req, res) => {
           dbo.collection(envVariables.inventoryDb).insertOne(
             {
               product_id: result.insertedId,
-              product_quantity: 0,
+              product_quantity: req.body.product_quantity,
               product_location: req.body.product_location,
               last_updated: new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }),
             },
@@ -71,14 +71,14 @@ router.get("/find/:name", (req, res) => {
   });
 });
 
-router.get("/getAll", (req, res) => {
+router.get("/getAll/:collection", (req, res) => {
   MongoClient.connect(url, function (err, db) {
     console.log(url, envVariables);
     let dbo = db.db(envVariables.database);
     if (err) throw err;
 
     dbo
-      .collection(envVariables.inventoryDb)
+      .collection(req.params.collection==='products'?envVariables.productDb:req.params.collection==='inventory'?envVariables.inventoryDb:null)
       .find({})
       .toArray(function (err, result) {
         if (err) {
@@ -94,14 +94,13 @@ router.get("/getAll", (req, res) => {
 
 
 
-router.patch("/update/:name", (req, res) => {
+router.patch("/update/:id", (req, res) => {
   MongoClient.connect(url, function (err, db) {
     if (err) throw err;
 
     let dbo = db.db(envVariables.database);
-    const productName = req.params.name;
     const updateProductData = {
-      // product_name: req.body.product_name,
+      product_name: req.body.product_name,
       product_description: req.body.product_description,
       product_price: req.body.product_price,
       product_category: req.body.product_category,
@@ -113,7 +112,7 @@ router.patch("/update/:name", (req, res) => {
     };
 
     dbo.collection(envVariables.productDb).findOneAndUpdate(
-      { product_name: productName },
+      { _id: ObjectId(req.params.id) },
       { $set: updateProductData, $setOnInsert: { updated_id: ObjectId() } },
       { upsert: true, returnOriginal: false },
       function (err, result) {
@@ -126,7 +125,7 @@ router.patch("/update/:name", (req, res) => {
           return;
         }
         dbo.collection(envVariables.inventoryDb).updateOne(
-          { product_id: result.value._id},
+          { product_id: ObjectId(req.params.id)},
           { $set: updateInventoryData },
           function (err, resultIn) {
             if (err) throw err;
@@ -150,7 +149,7 @@ router.patch("/update/:name", (req, res) => {
 
 
 
-router.delete("/delete/:name", (req, res) => {
+router.delete("/delete/:id", (req, res) => {
   MongoClient.connect(url, function (err, db) {
     let dbo = db.db(envVariables.database);
     if (err) throw err;
@@ -158,7 +157,7 @@ router.delete("/delete/:name", (req, res) => {
     // find the product id using name-connect to product collection
     dbo
       .collection(envVariables.productDb)
-      .find({ product_name: req.params.name })
+      .find({ _id: ObjectId(req.params.id)})
       .toArray(function (err, products) {
         if (err) throw err;
         if (products.length === 0) {
@@ -169,22 +168,18 @@ router.delete("/delete/:name", (req, res) => {
         }
         // console.log(products.length)
         const deleteFromProducts = products.map((product) => {
-          const productId = product._id;
-
           // Delete each product individually
           console.log(product);
           return dbo
             .collection(envVariables.productDb)
-            .deleteOne({ _id: ObjectId(productId) });
+            .deleteOne({ _id: ObjectId(req.params.id) });
         });
         const deleteFromInventory = products.map((product) => {
-          const productId = product._id;
-
           // Delete each product individually
           console.log(product);
           return dbo
             .collection(envVariables.inventoryDb)
-            .deleteOne({ product_id: ObjectId(productId) });
+            .deleteOne({ product_id: ObjectId(req.params.id) });
         });
         Promise.all(deleteFromProducts)
           .then(() => {

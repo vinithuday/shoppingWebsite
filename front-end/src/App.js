@@ -55,7 +55,7 @@ const App = () => {
           element={<Products isUserLoggedIn={loggedIn} isLoading={isLoading} />}
         />
 
-        <Route path="/products/:id/:name" element={<ProductDetails />} />
+        <Route path="/products/:id/:name/:price/:description" element={<ProductDetails />} />
 
         {/* Wild Card */}
         <Route path="*" element={<h4 className="error">Route Not Found</h4>} />

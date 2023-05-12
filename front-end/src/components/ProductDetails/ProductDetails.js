@@ -1,44 +1,94 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import axios from "axios";
 import "./ProductDetails.css";
+import { apiCall } from "../../util/util";
 
-const ProductDetails = () =>{
-const {id, name} = useParams();
-console.log(id);
-console.log(name);
-function handleClick() {
-    console.log("Button clicked!");
-  }
+const ProductDetails = () => {
+  const { id, name, price, description } = useParams();
+  const navigate = useNavigate();
+  const [editMode, setEditMode] = useState(false);
+  const [productData, setProductData] = useState({
+    product_name: name,
+    product_description: description,
+    product_price: price,
+  });
 
+  const handleChange = (e) => {
+    setProductData({
+      ...productData,
+      [e.target.name]: e.target.value,
+    });
+  };
 
-    return(
-        <div className="content">
-<div className="product">
+  const handleEdit = () => {
+    setEditMode(true);
+  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    apiCall.update(id,productData,navigate)
+    setEditMode(false); 
+  };
 
-    <div className="image">
-        <img src="https://via.placeholder.com/520x460" alt="productDetails"/>
-    </div>
-    <div className="details">
-        <h2>
-            {name}-{id}
-        </h2>
-
-        <p>
-        With the one-off energy price lump sum, the federal government relieves people in training. 
-        The one-off payment can be applied for online shortly. There are a few steps you can take 
-        in advance to speed up the application process. On this page you will find all important 
-        information about this as well as
-        </p>
-        <p>
-        price- 60$
-
-        </p>
-
-        <button onClick={handleClick}>Add!</button>
-    </div>
-</div>
-
+  const handleDelete = () => {
+    const response = window.confirm(`Are you sure you want to delete ${name}?`);
+    if (response) {
+      apiCall.delete(id, navigate);
+    }
+  };
+  return (
+    <div className="content">
+      <div className="product">
+        <div className="image">
+          <img src="https://via.placeholder.com/520x460" alt="productDetails" />
         </div>
-    );
+        <div className="details">
+          <h2 onClick={handleEdit} className={editMode ? "editable" : ""}>
+            {editMode ? (
+              <input
+                type="text"
+                name="product_name"
+                value={productData.product_name}
+                onChange={handleChange}
+              />
+            ) : (
+              productData.product_name
+            )}
+          </h2>
+          <p onClick={handleEdit} className={editMode ? "editable" : ""}>
+            {editMode ? (
+              <textarea
+                name="product_description"
+                value={productData.product_description}
+                onChange={handleChange}
+              ></textarea>
+            ) : (
+              productData.product_description
+            )}
+          </p>
+          <p onClick={handleEdit} className={editMode ? "editable" : ""}>
+            {editMode ? (
+              <input
+                type="number"
+                name="product_price"
+                value={productData.product_price}
+                onChange={handleChange}
+              />
+            ) : (
+              productData.product_price
+            )}
+          </p>
+          {editMode ? (
+            <button type="submit" onClick={handleSubmit}>
+              Save
+            </button>
+          ) : (
+            <button onClick={handleDelete}>Delete!</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default ProductDetails;
