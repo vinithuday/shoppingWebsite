@@ -21,7 +21,7 @@ export const apiCall = {
       .post("http://localhost:3010/add", product)
       .then((response) => {
         console.log("Product added successfully:", response.data);
-        navigate("/products");
+        navigate(window.location.pathname);
       })
       .catch((error) => {
         console.error("Error adding product:", error);
